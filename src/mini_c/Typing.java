@@ -117,7 +117,6 @@ public class Typing implements Pvisitor {
 		if (n.e1.expr instanceof Eaccess_local) {
 			Eaccess_local e = (Eaccess_local) n.e1.expr;
 			n.expr = new Eassign_local(e.i, n.e2.expr);
-
 		} else if (n.e1.expr instanceof Eaccess_field) {
 			Eaccess_field e = (Eaccess_field) n.e1.expr;
 			n.expr = new Eassign_field(e.e, e.f, n.e2.expr);
@@ -294,14 +293,17 @@ public class Typing implements Pvisitor {
 		}
 		Structure struct = new Structure(n.s);
 		structs.put(struct.str_name, struct);
-		n.fl.forEach(var -> {
+		int i = 0;
+		for (Pdeclvar var: n.fl) {
 			if (struct.fields.containsKey(var.id)) {
 				throw new Error("redefinition id"); // TODO
 			}
 			var.typ.accept(this);
 			Field f = new Field(var.id, var.typ.typ);
 			struct.fields.put(var.id, f);
-		});
+			struct.fields_i.put(var.id, Integer.valueOf(i));
+			i++;
+		}
 	}
 
 	@Override

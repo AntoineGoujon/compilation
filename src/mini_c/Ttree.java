@@ -89,9 +89,13 @@ class Structure {
 	public HashMap<String, Field> fields;
 	// on pourra ajouter plus tard ici la taille totale de la structure
 
+	// Added to access field in memory
+	public HashMap<String, Integer> fields_i;
+
 	Structure(String str_name) {
 		this.str_name = str_name;
 		this.fields = new HashMap<String, Field>();
+		this.fields_i = new HashMap<String, Integer>();
 	}
 
 	void accept(Visitor v) {
@@ -355,6 +359,9 @@ class Decl_fun {
 	public String fun_name;
 	public LinkedList<Decl_var> fun_formals;
 	public Stmt fun_body;
+
+	// For RTL
+	public RTLfun rtlfun;
 
 	Decl_fun(Typ fun_typ, String fun_name, LinkedList<Decl_var> fun_formals,
 			Stmt fun_body) {
