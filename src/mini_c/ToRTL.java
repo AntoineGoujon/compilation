@@ -82,7 +82,7 @@ public class ToRTL implements Visitor {
 		Tstructp structp = (Tstructp) n.e.typ;
 		int i = structp.s.fields_i.get(n.f.field_name);
 
-		Ld = body.add(new Rload(r1, i*8, rd, Ld));
+		Ld = body.add(new Rload(r1, i * 8, rd, Ld));
 		rd = r1;
 		n.e.accept(this);
 	}
@@ -98,7 +98,7 @@ public class ToRTL implements Visitor {
 			}
 		}
 
-		//TODO: weird
+		// TODO: weird
 		Ld = body.add(new Rmbinop(Mbinop.Mmov, r1, rd, Ld));
 		Ld = body.add(new Rmbinop(Mbinop.Mmov, r2, r1, Ld));
 		rd = r2;
@@ -112,7 +112,9 @@ public class ToRTL implements Visitor {
 
 		Tstructp structp = (Tstructp) n.e1.typ;
 		int i = structp.s.fields_i.get(n.f.field_name);
-
+		
+		// TODO: weird
+		Ld = body.add(new Rmbinop(Mbinop.Mmov, r1, rd, Ld));
 		Ld = body.add(new Rstore(r1, r2, i*8, Ld));
 		rd = r2;
 		n.e1.accept(this);
@@ -172,11 +174,19 @@ public class ToRTL implements Visitor {
 				op = Mbinop.Mdiv;
 				break;
 			case Bor:
-				Ld = body.add(new Rmunop(new Msetei(0), rd, Ld));
-
-				break;
+				// TODO: weird
+				Label L0 = body.add(new Rconst(0, rd, Ld));
+				Label L1 = body.add(new Rconst(1, rd, Ld));
+				branch(n.e2, L1, L0);
+				branch(n.e1, L1, Ld);
+				return;
 			case Band:
-				break;
+				// TODO: weird
+				Label L0b = body.add(new Rconst(0, rd, Ld));
+				Label L1b = body.add(new Rconst(1, rd, Ld));
+				branch(n.e2, L1b, L0b);
+				branch(n.e1, Ld, L0b);
+				return;
 
 		}
 		Register r1 = new Register();
@@ -199,7 +209,7 @@ public class ToRTL implements Visitor {
 
 	@Override
 	public void visit(Esizeof n) {
-		int s = n.s.fields.size()*8;
+		int s = n.s.fields.size() * 8;
 		Ld = body.add(new Rconst(s, rd, Ld));
 	}
 
