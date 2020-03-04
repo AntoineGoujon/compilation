@@ -51,6 +51,13 @@ public class Main {
     ERTLfile ertl = (new ToERTL()).translate(rtl);
     if (debug) ertl.print();
     if (interp_ertl) { new ERTLinterp(ertl); System.exit(0); }
+    // Debug Kildall
+    if (debug) {
+      ertl.funs.forEach(fun -> {
+        Liveness live = new Liveness(fun.body);
+        live.print(fun.entry);
+      });
+    }
   }
 
 }
