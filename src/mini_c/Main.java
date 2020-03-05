@@ -55,7 +55,9 @@ public class Main {
     if (debug) {
       ertl.funs.forEach(fun -> {
         Liveness live = new Liveness(fun.body);
-        live.print(fun.entry);
+        Interference interf = new Interference(live);
+        Coloring colored = new Coloring(interf);
+        colored.print();
       });
     }
   }
