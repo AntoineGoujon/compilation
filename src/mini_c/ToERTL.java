@@ -5,19 +5,18 @@ import java.util.List;
 
 class ToERTL implements RTLVisitor {
 
-
     private ERTLfile ertl;
     private ERTLgraph body;
     private Label Ld;
 
-	public ToERTL() {
-		ertl = new ERTLfile();
-	}
+    public ToERTL() {
+        ertl = new ERTLfile();
+    }
 
-	public ERTLfile translate(RTLfile rtl) {
-		this.visit(rtl);
-		return ertl;
-	}
+    public ERTLfile translate(RTLfile rtl) {
+        this.visit(rtl);
+        return ertl;
+    }
 
     public void visit(Rconst o) {
         body.graph.put(Ld, new ERconst(o.i, o.r, o.l));
@@ -60,13 +59,13 @@ class ToERTL implements RTLVisitor {
 
         int a = Math.min(Register.parameters.size(), o.rl.size());
         int b = Math.max(0, o.rl.size() - Register.parameters.size());
-        
+
         if (b > 0) {
-            Ltmp = body.add(new ERmunop(new Maddi(b*8), Register.rsp, Ltmp));
+            Ltmp = body.add(new ERmunop(new Maddi(b * 8), Register.rsp, Ltmp));
         }
         Ltmp = body.add(new ERmbinop(Mbinop.Mmov, Register.result, o.r, Ltmp));
         Ltmp = body.add(new ERcall(o.s, a, Ltmp));
-        
+
         for (int j = Register.parameters.size(); j < o.rl.size(); j++) {
             Ltmp = body.add(new ERpush_param(o.rl.get(j), Ltmp));
         }
@@ -85,27 +84,27 @@ class ToERTL implements RTLVisitor {
         ertlfun.locals = o.locals;
         ertlfun.body = new ERTLgraph();
         body = ertlfun.body;
-        
+
         Label Ltmp = o.entry;
         int a = Math.min(Register.parameters.size(), o.formals.size());
         int b = Math.max(0, o.formals.size() - Register.parameters.size());
 
         for (int j = 0; j < b; j++) {
-            // Weird "+2"
-            Ltmp = body.add(new ERget_param((j+2)*8, o.formals.get(a+j), Ltmp));
+            // TODO: not Weird "+2"
+            Ltmp = body.add(new ERget_param((j + 2) * 8, o.formals.get(a + j), Ltmp));
         }
         for (int j = 0; j < a; j++) {
             Ltmp = body.add(new ERmbinop(Mbinop.Mmov, Register.parameters.get(j), o.formals.get(j), Ltmp));
         }
 
         List<Register> cs = new LinkedList<>();
-        for (Register csr: Register.callee_saved) {
+        for (Register csr : Register.callee_saved) {
             Register r = new Register();
             Ltmp = body.add(new ERmbinop(Mbinop.Mmov, csr, r, Ltmp));
             ertlfun.locals.add(r);
             cs.add(r);
         }
-        
+
         Ltmp = body.add(new ERalloc_frame(Ltmp));
         ertlfun.entry = Ltmp;
 
@@ -129,4 +128,4 @@ class ToERTL implements RTLVisitor {
             fun.accept(this);
         });
     }
-    }
+}

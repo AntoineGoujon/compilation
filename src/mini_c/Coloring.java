@@ -8,17 +8,20 @@ import java.util.Set;
 class Coloring {
     Map<Register, Operand> colors = new HashMap<>();
     int nlocals = 0; // nombre d'emplacements sur la pile
-    Map<Register, Set<Register>> todo;
+
+    private Map<Register, Set<Register>> todo;
 
     Coloring(Interference ig) {
         todo = new HashMap<>();
-        int n = 1;
+        Register.allocatable.forEach(allocReg -> {
+            colors.put(allocReg, new Reg(allocReg));
+        });
+
         ig.graph.forEach((v, e) -> {
             if (!Register.allocatable.contains(v)) {
                 Set<Register> colors = new HashSet<>();
                 colors.addAll(Register.allocatable);
                 colors.removeAll(e.intfs);
-                System.out.println(colors);
                 todo.put(v, colors);
             }
         });
@@ -26,7 +29,7 @@ class Coloring {
         while (!todo.isEmpty()) {
             Register r = this.popNext(ig);
             if (r != null) {
-                Register color = todo.get(r).iterator().next();
+                Register color = todo.get(r).iterator().next(); //TODO select preference first
                 colors.put(r, new Reg(color));
                 ig.graph.get(r).intfs.forEach(interf -> {
                     if (todo.containsKey(interf)) {
@@ -35,8 +38,8 @@ class Coloring {
                 });
             } else {
                 r = todo.keySet().iterator().next();
-                colors.put(r, new Spilled(n));
-                n += 1;
+                nlocals += 1;
+                colors.put(r, new Spilled(-8*nlocals)); // TODO check pos / rbp
             }
             todo.remove(r);
         }
