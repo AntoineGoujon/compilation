@@ -1,8 +1,11 @@
-int f() {
-    int x;
+int g() {
+	return 1;
 }
+
+struct S {
+	int a;
+};
 int main()
 {
-    int x;
-    return 0;
+    return 1>2;
 }

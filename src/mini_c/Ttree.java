@@ -4,41 +4,36 @@ import java.util.HashMap;
 import java.util.LinkedList;
 
 abstract class Typ {
-	abstract void accept(Visitor v);
-
-	// TODO: not sure if ok
 	@Override
-    public boolean equals(Object o) {
-        
-        if (this.getClass() == o.getClass()) {
-            return true;
-        }
+	public boolean equals(Object o) {
 
-        if (((this instanceof Ttypenull) && (o instanceof Tint)) || 
-            ((o instanceof Ttypenull) && (this instanceof Tint))) {
-            return true;
-        }
-        if (((this instanceof Ttypenull) && (o instanceof Tstructp)) || 
-            ((o instanceof Ttypenull) && (this instanceof Tstructp))) {
-            return true;
-        }
-        if (((this instanceof Tvoidstar) && (o instanceof Tstructp)) || 
-            ((o instanceof Tvoidstar) && (this instanceof Tstructp))) {
-            return true;
-        }
-        return false;
-    }
+		if (this.getClass() == o.getClass()) {
+			return true;
+		}
+
+		if (((this instanceof Ttypenull) && (o instanceof Tint))
+				|| ((o instanceof Ttypenull) && (this instanceof Tint))) {
+			return true;
+		}
+		if (((this instanceof Ttypenull) && (o instanceof Tstructp))
+				|| ((o instanceof Ttypenull) && (this instanceof Tstructp))) {
+			return true;
+		}
+		if (((this instanceof Tvoidstar) && (o instanceof Tstructp))
+				|| ((o instanceof Tvoidstar) && (this instanceof Tstructp))) {
+			return true;
+		}
+		return false;
+	}
 }
 
 class Tint extends Typ {
-	Tint() {}
-
-	void accept(Visitor v) {
-		v.visit(this);
+	Tint() {
 	}
+
 	@Override
 	public String toString() {
-	  return "int";
+		return "int";
 	}
 }
 
@@ -49,12 +44,9 @@ class Tstructp extends Typ {
 		this.s = s;
 	}
 
-	void accept(Visitor v) {
-		v.visit(this);
-	}
 	@Override
 	public String toString() {
-	  return "struct " + s.str_name + "*";
+		return "struct " + s.str_name + "*";
 	}
 }
 
@@ -62,12 +54,9 @@ class Tvoidstar extends Typ {
 	Tvoidstar() {
 	}
 
-	void accept(Visitor v) {
-		v.visit(this);
-	}
 	@Override
 	public String toString() {
-	  return "void*";
+		return "void*";
 	}
 }
 
@@ -75,12 +64,9 @@ class Ttypenull extends Typ {
 	Ttypenull() {
 	}
 
-	void accept(Visitor v) {
-		v.visit(this);
-	}
 	@Override
 	public String toString() {
-	  return "typenull";
+		return "typenull";
 	}
 }
 
@@ -98,9 +84,6 @@ class Structure {
 		this.fields_i = new HashMap<String, Integer>();
 	}
 
-	void accept(Visitor v) {
-		v.visit(this);
-	}
 }
 
 class Field {
@@ -111,10 +94,6 @@ class Field {
 	Field(String field_name, Typ field_typ) {
 		this.field_name = field_name;
 		this.field_typ = field_typ;
-	}
-
-	void accept(Visitor v) {
-		v.visit(this);
 	}
 }
 
@@ -127,13 +106,9 @@ class Decl_var {
 		this.name = i;
 	}
 
-	void accept(Visitor v) {
-		v.visit(this);
-	}
-	
 	@Override
 	public String toString() {
-	  return t.toString() + " " + name;
+		return t.toString() + " " + name;
 	}
 }
 
@@ -141,7 +116,7 @@ class Decl_var {
 
 abstract class Expr {
 	public Typ typ; // chaque expression est décorée par son type
-
+	boolean pure;	
 	abstract void accept(Visitor v);
 }
 
@@ -150,6 +125,7 @@ class Econst extends Expr {
 
 	Econst(int i) {
 		this.i = i;
+		this.pure = true;
 	}
 
 	void accept(Visitor v) {
@@ -162,6 +138,7 @@ class Eaccess_local extends Expr {
 
 	Eaccess_local(String i) {
 		this.i = i;
+		this.pure = true;
 	}
 
 	void accept(Visitor v) {
@@ -176,6 +153,7 @@ class Eaccess_field extends Expr {
 	Eaccess_field(Expr e, Field f) {
 		this.e = e;
 		this.f = f;
+		this.pure = true;
 	}
 
 	void accept(Visitor v) {
@@ -190,6 +168,7 @@ class Eassign_local extends Expr {
 	Eassign_local(String i, Expr e) {
 		this.i = i;
 		this.e = e;
+		this.pure = false;
 	}
 
 	void accept(Visitor v) {
@@ -206,6 +185,7 @@ class Eassign_field extends Expr {
 		this.e1 = e1;
 		this.f = f;
 		this.e2 = e2;
+		this.pure = false;
 	}
 
 	void accept(Visitor v) {
@@ -220,6 +200,7 @@ class Eunop extends Expr {
 	Eunop(Unop u, Expr e) {
 		this.u = u;
 		this.e = e;
+		this.pure = e.pure;
 	}
 
 	void accept(Visitor v) {
@@ -236,6 +217,7 @@ class Ebinop extends Expr {
 		this.b = b;
 		this.e1 = e1;
 		this.e2 = e2;
+		this.pure = e1.pure && e2.pure;
 	}
 
 	void accept(Visitor v) {
@@ -250,6 +232,7 @@ class Ecall extends Expr {
 	Ecall(String i, LinkedList<Expr> el) {
 		this.i = i;
 		this.el = el;
+		this.pure = false;
 	}
 
 	void accept(Visitor v) {
@@ -262,6 +245,7 @@ class Esizeof extends Expr {
 
 	Esizeof(Structure s) {
 		this.s = s;
+		this.pure = true;
 	}
 
 	void accept(Visitor v) {
@@ -363,8 +347,7 @@ class Decl_fun {
 	// For RTL
 	public RTLfun rtlfun;
 
-	Decl_fun(Typ fun_typ, String fun_name, LinkedList<Decl_var> fun_formals,
-			Stmt fun_body) {
+	Decl_fun(Typ fun_typ, String fun_name, LinkedList<Decl_var> fun_formals, Stmt fun_body) {
 		this.fun_typ = fun_typ;
 		this.fun_name = fun_name;
 		this.fun_formals = fun_formals;
@@ -396,28 +379,6 @@ class File {
 }
 
 interface Visitor {
-	public void visit(Unop n);
-
-	public void visit(Binop n);
-
-	public void visit(String n);
-
-	public void visit(Tint n);
-
-	public void visit(Tstructp n);
-
-	public void visit(Tvoidstar n);
-
-	public void visit(Ttypenull n);
-
-	public void visit(Structure n);
-
-	public void visit(Field n);
-
-	public void visit(Decl_var n);
-
-	public void visit(Expr n);
-
 	public void visit(Econst n);
 
 	public void visit(Eaccess_local n);
@@ -451,90 +412,4 @@ interface Visitor {
 	public void visit(Decl_fun n);
 
 	public void visit(File n);
-}
-
-class EmptyVisitor implements Visitor {
-	public void visit(Unop n) {
-	}
-
-	public void visit(Binop n) {
-	}
-
-	public void visit(String n) {
-	}
-
-	public void visit(Tint n) {
-	}
-
-	public void visit(Tstructp n) {
-	}
-
-	public void visit(Tvoidstar n) {
-	}
-
-	public void visit(Ttypenull n) {
-	}
-
-	public void visit(Structure n) {
-	}
-
-	public void visit(Field n) {
-	}
-
-	public void visit(Decl_var n) {
-	}
-
-	public void visit(Expr n) {
-	}
-
-	public void visit(Econst n) {
-	}
-
-	public void visit(Eaccess_local n) {
-	}
-
-	public void visit(Eaccess_field n) {
-	}
-
-	public void visit(Eassign_local n) {
-	}
-
-	public void visit(Eassign_field n) {
-	}
-
-	public void visit(Eunop n) {
-	}
-
-	public void visit(Ebinop n) {
-	}
-
-	public void visit(Ecall n) {
-	}
-
-	public void visit(Esizeof n) {
-	}
-
-	public void visit(Sskip n) {
-	}
-
-	public void visit(Sexpr n) {
-	}
-
-	public void visit(Sif n) {
-	}
-
-	public void visit(Swhile n) {
-	}
-
-	public void visit(Sblock n) {
-	}
-
-	public void visit(Sreturn n) {
-	}
-
-	public void visit(Decl_fun n) {
-	}
-
-	public void visit(File n) {
-	}
 }

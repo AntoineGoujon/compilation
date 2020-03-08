@@ -6,6 +6,17 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
+//TODO question sur assigm local and field
+// est il necessaire/utile de faire optimisation faite ici??
+
+//TODO question: meilleur moyen de faire or et and??
+
+//TODO: ajouter unary operation neg et not
+
+//TODO more smart constructors
+
+//TODO: check terminating
+
 public class ToRTL implements Visitor {
 
 	static class Env extends HashMap<String, Register> {
@@ -31,7 +42,6 @@ public class ToRTL implements Visitor {
 	}
 
 	public void branch(Expr e, Label Lt, Label Lf) {
-
 		if (e instanceof Ebinop) {
 			Ebinop ebinop = (Ebinop) e;
 			switch (ebinop.b) {
@@ -97,8 +107,6 @@ public class ToRTL implements Visitor {
 				break;
 			}
 		}
-
-		// TODO: weird
 		Ld = body.add(new Rmbinop(Mbinop.Mmov, r1, rd, Ld));
 		Ld = body.add(new Rmbinop(Mbinop.Mmov, r2, r1, Ld));
 		rd = r2;
@@ -112,10 +120,8 @@ public class ToRTL implements Visitor {
 
 		Tstructp structp = (Tstructp) n.e1.typ;
 		int i = structp.s.fields_i.get(n.f.field_name);
-		
-		// TODO: weird
 		Ld = body.add(new Rmbinop(Mbinop.Mmov, r1, rd, Ld));
-		Ld = body.add(new Rstore(r1, r2, i*8, Ld));
+		Ld = body.add(new Rstore(r1, r2, i * 8, Ld));
 		rd = r2;
 		n.e1.accept(this);
 		rd = r1;
@@ -162,33 +168,102 @@ public class ToRTL implements Visitor {
 				op = Mbinop.Msetg;
 				break;
 			case Badd:
+				if (n.e1 instanceof Econst && n.e2 instanceof Econst) {
+					Econst n1 = (Econst) n.e1;
+					Econst n2 = (Econst) n.e2;
+					Ld = body.add(new Rconst(n1.i + n2.i, rd, Ld));
+					return;
+				} else if (n.e1 instanceof Econst && ((Econst) n.e1).i == 0) {
+					n.e2.accept(this);
+					return;
+				} else if (n.e2 instanceof Econst && ((Econst) n.e2).i == 0) {
+					n.e1.accept(this);
+					return;
+				} else if (n.e1 instanceof Econst) {
+					int c = ((Econst) n.e1).i;
+					Ld = body.add(new Rmunop(new Maddi(c), rd, Ld));
+					n.e2.accept(this);
+					return;
+				} else if (n.e2 instanceof Econst) {
+					int c = ((Econst) n.e2).i;
+					Ld = body.add(new Rmunop(new Maddi(c), rd, Ld));
+					n.e1.accept(this);
+					return;
+				}
 				op = Mbinop.Madd;
 				break;
 			case Bsub:
+				if (n.e1 instanceof Econst && n.e2 instanceof Econst) {
+					Econst n1 = (Econst) n.e1;
+					Econst n2 = (Econst) n.e2;
+					Ld = body.add(new Rconst(n1.i - n2.i, rd, Ld));
+					return;
+				} else if (n.e1 instanceof Econst && ((Econst) n.e1).i == 0) {
+					n.e2.accept(this);
+					return;
+				} else if (n.e2 instanceof Econst && ((Econst) n.e2).i == 0) {
+					n.e1.accept(this);
+					return;
+				} else if (n.e1 instanceof Econst) {
+					int c = ((Econst) n.e1).i;
+					Ld = body.add(new Rmunop(new Maddi(-c), rd, Ld));
+					n.e2.accept(this);
+					return;
+				} else if (n.e2 instanceof Econst) {
+					int c = ((Econst) n.e2).i;
+					Ld = body.add(new Rmunop(new Maddi(-c), rd, Ld));
+					n.e1.accept(this);
+					return;
+				}
 				op = Mbinop.Msub;
 				break;
 			case Bmul:
+				if (n.e1 instanceof Econst && n.e2 instanceof Econst) {
+					Econst n1 = (Econst) n.e1;
+					Econst n2 = (Econst) n.e2;
+					Ld = body.add(new Rconst(n1.i * n2.i, rd, Ld));
+					return;
+				} else if (n.e1 instanceof Econst && ((Econst) n.e1).i == 0) {
+					if (n.e2.pure) {
+						Ld = body.add(new Rconst(0, rd, Ld));
+						return;
+					}
+				} else if (n.e2 instanceof Econst && ((Econst) n.e2).i == 0) {
+					if (n.e1.pure) {
+						Ld = body.add(new Rconst(0, rd, Ld));
+						return;
+					}
+				}
 				op = Mbinop.Mmul;
 				break;
 			case Bdiv:
+				if (n.e1 instanceof Econst && n.e2 instanceof Econst) {
+					Econst n1 = (Econst) n.e1;
+					Econst n2 = (Econst) n.e2;
+					Ld = body.add(new Rconst(n1.i / n2.i, rd, Ld));
+					return;
+				} else if (n.e1 instanceof Econst && ((Econst) n.e1).i == 0) {
+					if (n.e2.pure) {
+						Ld = body.add(new Rconst(0, rd, Ld));
+						return;
+					}
+				}
 				op = Mbinop.Mdiv;
 				break;
 			case Bor:
-				// TODO: weird
 				Label L0 = body.add(new Rconst(0, rd, Ld));
 				Label L1 = body.add(new Rconst(1, rd, Ld));
 				branch(n.e2, L1, L0);
 				branch(n.e1, L1, Ld);
 				return;
 			case Band:
-				// TODO: weird
 				Label L0b = body.add(new Rconst(0, rd, Ld));
 				Label L1b = body.add(new Rconst(1, rd, Ld));
 				branch(n.e2, L1b, L0b);
 				branch(n.e1, Ld, L0b);
 				return;
-
 		}
+		// Default action
 		Register r1 = new Register();
 		Ld = body.add(new Rmbinop(op, r1, rd, Ld));
 		n.e1.accept(this);
@@ -219,7 +294,34 @@ public class ToRTL implements Visitor {
 
 	@Override
 	public void visit(Sexpr n) {
-		n.e.accept(this);
+		// TODO useful or not??
+		if (n.e instanceof Eassign_local) {
+			Eassign_local nl = (Eassign_local) n.e;
+			Register r1 = null;
+			Register r2 = new Register();
+			for (Env env : envs) {
+				if (env.containsKey(nl.i)) {
+					r1 = env.get(nl.i);
+					break;
+				}
+			}
+			Ld = body.add(new Rmbinop(Mbinop.Mmov, r2, r1, Ld));
+			rd = r2;
+			nl.e.accept(this);
+		} else if (n.e instanceof Eassign_field) {
+			Eassign_field nl = (Eassign_field) n.e;
+			Register r1 = new Register();
+			Register r2 = new Register();
+			Tstructp structp = (Tstructp) nl.e1.typ;
+			int i = structp.s.fields_i.get(nl.f.field_name);
+			Ld = body.add(new Rstore(r1, r2, i * 8, Ld));
+			rd = r2;
+			nl.e1.accept(this);
+			rd = r1;
+			nl.e2.accept(this);
+		} else {
+			n.e.accept(this);
+		}
 	}
 
 	@Override
@@ -310,38 +412,5 @@ public class ToRTL implements Visitor {
 				rtlfile.funs.add(fun.rtlfun);
 			}
 		});
-	}
-
-	public void visit(Unop n) {
-	}
-
-	public void visit(Binop n) {
-	}
-
-	public void visit(String n) {
-	}
-
-	public void visit(Tint n) {
-	}
-
-	public void visit(Tstructp n) {
-	}
-
-	public void visit(Tvoidstar n) {
-	}
-
-	public void visit(Ttypenull n) {
-	}
-
-	public void visit(Structure n) {
-	}
-
-	public void visit(Field n) {
-	}
-
-	public void visit(Decl_var n) {
-	}
-
-	public void visit(Expr n) {
 	}
 }
