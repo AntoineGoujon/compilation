@@ -12,30 +12,32 @@ enum Unop {
 
 // une classe pour les localisations
 class Loc {
-  final int line, column;
-  
-  Loc(int line, int column) {
-    this.line = line;
-    this.column = column;
-  }
+	final int line, column;
 
-  @Override
-  public String toString() {
-    return "line " + line + ", column " + column;
-  }
+	Loc(int line, int column) {
+		this.line = line;
+		this.column = column;
+	}
+
+	@Override
+	public String toString() {
+		return "line " + line + ", column " + column;
+	}
 }
 
 class Pstring {
-  String id;
-  Loc loc;
-  public Pstring(String id, Loc loc) {
-    this.id = id;
-    this.loc = loc;
-  }
-  @Override
-  public String toString() {
-    return this.id;
-  }
+	String id;
+	Loc loc;
+
+	public Pstring(String id, Loc loc) {
+		this.id = id;
+		this.loc = loc;
+	}
+
+	@Override
+	public String toString() {
+		return this.id;
+	}
 }
 
 class Pfile {
@@ -45,9 +47,10 @@ class Pfile {
 		super();
 		this.l = l;
 	}
+
 	void accept(Pvisitor v) {
 		v.visit(this);
-	}	
+	}
 }
 
 abstract class Pdecl {
@@ -64,9 +67,10 @@ class Pstruct extends Pdecl {
 		this.s = s;
 		this.fl = fl;
 	}
+
 	void accept(Pvisitor v) {
 		v.visit(this);
-	}	
+	}
 }
 
 class Pfun extends Pdecl {
@@ -84,9 +88,10 @@ class Pfun extends Pdecl {
 		this.pl = pl;
 		this.b = b;
 	}
+
 	void accept(Pvisitor v) {
 		v.visit(this);
-	}	
+	}
 }
 
 class Pdeclvar {
@@ -107,13 +112,14 @@ class Pdeclvar {
 abstract class Ptype {
 	static Ptype ptint = new PTint();
 	Typ typ;
+
 	abstract void accept(Pvisitor v);
 }
 
 class PTint extends Ptype {
 	void accept(Pvisitor v) {
 		v.visit(this);
-	}	
+	}
 }
 
 class PTstruct extends Ptype {
@@ -125,6 +131,7 @@ class PTstruct extends Ptype {
 		this.id = id.id;
 		this.loc = id.loc;
 	}
+
 	void accept(Pvisitor v) {
 		v.visit(this);
 	}
@@ -133,14 +140,20 @@ class PTstruct extends Ptype {
 /* expressions */
 
 abstract class Pexpr {
-  Loc loc;
-  Expr expr;
-  Pexpr(Loc loc) { this.loc = loc; }
-  abstract void accept(Pvisitor v);
+	Loc loc;
+	Expr expr;
+
+	Pexpr(Loc loc) {
+		this.loc = loc;
+	}
+
+	abstract void accept(Pvisitor v);
 }
 
-abstract class Plvalue extends Pexpr{
-  Plvalue(Loc loc) { super(loc); }
+abstract class Plvalue extends Pexpr {
+	Plvalue(Loc loc) {
+		super(loc);
+	}
 }
 
 class Pident extends Plvalue {
@@ -150,9 +163,10 @@ class Pident extends Plvalue {
 		super(id.loc);
 		this.id = id.id;
 	}
+
 	void accept(Pvisitor v) {
 		v.visit(this);
-	}	
+	}
 }
 
 class Pint extends Pexpr {
@@ -162,6 +176,7 @@ class Pint extends Pexpr {
 		super(loc);
 		this.n = n;
 	}
+
 	void accept(Pvisitor v) {
 		v.visit(this);
 	}
@@ -171,28 +186,31 @@ class Pint extends Pexpr {
 class Parrow extends Plvalue {
 	Pexpr e;
 	String f;
+
 	public Parrow(Pexpr e, String f) {
 		super(e.loc);
 		this.e = e;
 		this.f = f;
 	}
+
 	void accept(Pvisitor v) {
 		v.visit(this);
 	}
 }
 
 class Passign extends Pexpr {
-  Plvalue e1;
-  Pexpr e2;
+	Plvalue e1;
+	Pexpr e2;
 
-  public Passign(Plvalue e1, Pexpr e2) {
-    super(e1.loc);
-    this.e1 = e1;
-    this.e2 = e2;
-  }
-  void accept(Pvisitor v) {
-    v.visit(this);
-  }
+	public Passign(Plvalue e1, Pexpr e2) {
+		super(e1.loc);
+		this.e1 = e1;
+		this.e2 = e2;
+	}
+
+	void accept(Pvisitor v) {
+		v.visit(this);
+	}
 }
 
 class Pbinop extends Pexpr {
@@ -205,6 +223,7 @@ class Pbinop extends Pexpr {
 		this.e1 = e1;
 		this.e2 = e2;
 	}
+
 	void accept(Pvisitor v) {
 		v.visit(this);
 	}
@@ -219,11 +238,11 @@ class Punop extends Pexpr {
 		this.op = op;
 		this.e1 = e1;
 	}
+
 	void accept(Pvisitor v) {
 		v.visit(this);
 	}
 }
-
 
 class Pcall extends Pexpr {
 	final String f;
@@ -234,6 +253,7 @@ class Pcall extends Pexpr {
 		this.f = f.id;
 		this.l = l;
 	}
+
 	void accept(Pvisitor v) {
 		v.visit(this);
 	}
@@ -246,6 +266,7 @@ class Psizeof extends Pexpr {
 		super(loc);
 		this.id = id;
 	}
+
 	void accept(Pvisitor v) {
 		v.visit(this);
 	}
@@ -255,9 +276,13 @@ class Psizeof extends Pexpr {
 /* instructions */
 
 abstract class Pstmt {
-  Loc loc;
-  Stmt stmt;
-  Pstmt(Loc loc) { this.loc = loc; }
+	Loc loc;
+	Stmt stmt;
+
+	Pstmt(Loc loc) {
+		this.loc = loc;
+	}
+
 	abstract void accept(Pvisitor v);
 
 }
@@ -271,6 +296,7 @@ class Pbloc extends Pstmt {
 		this.vl = vl;
 		this.sl = sl;
 	}
+
 	void accept(Pvisitor v) {
 		v.visit(this);
 	}
@@ -278,7 +304,10 @@ class Pbloc extends Pstmt {
 }
 
 class Pskip extends Pstmt {
-  Pskip(Loc loc) { super(loc); }
+	Pskip(Loc loc) {
+		super(loc);
+	}
+
 	void accept(Pvisitor v) {
 		v.visit(this);
 	}
@@ -309,6 +338,7 @@ class Pif extends Pstmt {
 		this.s1 = s1;
 		this.s2 = s2;
 	}
+
 	void accept(Pvisitor v) {
 		v.visit(this);
 	}
@@ -322,6 +352,7 @@ class Peval extends Pstmt {
 		super(e.loc);
 		this.e = e;
 	}
+
 	void accept(Pvisitor v) {
 		v.visit(this);
 	}
@@ -336,6 +367,7 @@ class Pwhile extends Pstmt {
 		this.e = e;
 		this.s1 = s1;
 	}
+
 	void accept(Pvisitor v) {
 		v.visit(this);
 	}
@@ -344,15 +376,15 @@ class Pwhile extends Pstmt {
 interface Pvisitor {
 
 	public void visit(PTint n);
-	
+
 	public void visit(PTstruct n);
-	
+
 	public void visit(Pint n);
 
 	public void visit(Pident n);
 
 	public void visit(Punop n);
-  
+
 	public void visit(Passign n);
 
 	public void visit(Pbinop n);

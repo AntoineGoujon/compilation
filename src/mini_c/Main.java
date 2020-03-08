@@ -84,7 +84,8 @@ public class Main {
       new LTLinterp(ltl);
       System.exit(0);
     }
-
+    X86_64 asm = (new Lin()).translate(ltl);
+    asm.printToFile(file.substring(0, file.length() - 1) + "s");
   }
 
 }

@@ -4,8 +4,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Iterator;
 
-//TODO: check function return type
-//TODO: check if function terminates
+//TODO question: une fonction termine elle toujours par return?
 
 public class Typing implements Pvisitor {
 
@@ -16,6 +15,9 @@ public class Typing implements Pvisitor {
 	private LinkedList<Env> envs = new LinkedList<>();
 	private HashMap<String, Structure> structs = new HashMap<>();
 	private HashMap<String, Decl_fun> funs = new HashMap<>();
+
+	private Typ returnTyp;
+	private boolean returning;
 
 	public Typing() {
 		LinkedList<Decl_var> putchar_fun_formals = new LinkedList<>();
@@ -29,17 +31,11 @@ public class Typing implements Pvisitor {
 		funs.put(sbrk.fun_name, sbrk);
 	}
 
-	// le résultat du typage sera mis dans cette variable
 	private File file;
 
-	// et renvoyé par cette fonction
 	File getFile() {
-		if (file == null)
-			throw new Error("typing not yet done!");
 		return file;
 	}
-
-	// il faut compléter le visiteur ci-dessous pour réaliser le typage
 
 	@Override
 	public void visit(Pfile n) {
@@ -47,7 +43,7 @@ public class Typing implements Pvisitor {
 			decl.accept(this);
 		});
 		if (!funs.containsKey("main")) {
-			throw new Error("No main"); // TODO
+			throw new FunctionError.UndefinedFunctionError("main", new Loc(0, 0));
 		}
 		file = new File(new LinkedList<>(funs.values()));
 	}
@@ -60,7 +56,7 @@ public class Typing implements Pvisitor {
 	@Override
 	public void visit(PTstruct n) {
 		if (!structs.containsKey(n.id)) {
-			throw new Error("TODO");
+			throw new StructError.UndefinedStructError(n.id, n.loc);
 		}
 		n.typ = new Tstructp(structs.get(n.id));
 	}
@@ -85,16 +81,15 @@ public class Typing implements Pvisitor {
 				return;
 			}
 		}
-		throw new Error("Variable not found " + n.loc.toString()); // TODO
+		throw new IdentError.UndeclaredIdent(n.id, n.loc);
 	}
 
 	@Override
 	public void visit(Punop n) {
 		n.e1.accept(this);
-		if (n.op == Unop.Uneg && !(n.e1.expr.typ.equals(new Tint()))) { // TODO: faux
-			throw new Error("Trying Unop with invalid type" + n.loc); // TODO
+		if (n.op == Unop.Uneg && !(n.e1.expr.typ.equals(new Tint()))) {
+			throw new OpError.UnopError(n.loc);
 		}
-
 		n.expr = new Eunop(n.op, n.e1.expr);
 		n.expr.typ = new Tint();
 	}
@@ -103,15 +98,12 @@ public class Typing implements Pvisitor {
 	public void visit(Passign n) {
 		n.e1.accept(this);
 		if (!(n.e1 instanceof Plvalue)) {
-			throw new Error("not an lvalue"); // TODO
+			throw new AssignmentError.LvalueError(n.loc);
 		}
 		n.e2.accept(this);
 
-		if (!n.e1.expr.typ.equals(n.e2.expr.typ)) { // TODO: redefine equals for Typ
-			System.out.println(n.e1.expr.typ);
-			System.out.println(n.e2.expr.typ);
-
-			throw new Error("todo" + n.loc);
+		if (!n.e1.expr.typ.equals(n.e2.expr.typ)) {
+			throw new AssignmentError.IncompatibleType(n.e1.expr.typ, n.e2.expr.typ, n.loc);
 		}
 
 		if (n.e1.expr instanceof Eaccess_local) {
@@ -120,8 +112,6 @@ public class Typing implements Pvisitor {
 		} else if (n.e1.expr instanceof Eaccess_field) {
 			Eaccess_field e = (Eaccess_field) n.e1.expr;
 			n.expr = new Eassign_field(e.e, e.f, n.e2.expr);
-		} else {
-			// TODO never append because n.ei lvalue
 		}
 		n.expr.typ = n.e1.expr.typ;
 	}
@@ -138,7 +128,7 @@ public class Typing implements Pvisitor {
 			case Bge:
 			case Bgt:
 				if (!n.e1.expr.typ.equals(n.e2.expr.typ)) {
-					throw new Error("Comparison with invalid types" + n.loc); // TODO
+					throw new OpError.InvalidOperands(n.op, n.e1.expr.typ, n.e2.expr.typ, n.loc);
 				}
 				break;
 			case Bor:
@@ -148,12 +138,10 @@ public class Typing implements Pvisitor {
 			case Bsub:
 			case Bmul:
 			case Bdiv:
-				if (!n.e1.expr.typ.equals(new Tint())) {
-					throw new Error("a" + n.loc); // TODO
+				if (!n.e1.expr.typ.equals(new Tint()) || !n.e2.expr.typ.equals(new Tint())) {
+					throw new OpError.InvalidOperands(n.op, n.e1.expr.typ, n.e2.expr.typ, n.loc);
 				}
-				if (!n.e2.expr.typ.equals(new Tint())) {
-					throw new Error("b" + n.loc); // TODO
-				}
+				break;
 		}
 		n.expr = new Ebinop(n.op, n.e1.expr, n.e2.expr);
 		n.expr.typ = new Tint();
@@ -163,13 +151,12 @@ public class Typing implements Pvisitor {
 	public void visit(Parrow n) {
 		n.e.accept(this);
 		if (!(n.e.expr.typ instanceof Tstructp)) {
-			throw new Error("invalid lvalue Parrow" + n.loc); // TODO
+			throw new OpError.InvalidAccess(n.e.expr.typ, n.loc);
 		}
 		Tstructp structp = (Tstructp) n.e.expr.typ;
 		if (!structp.s.fields.containsKey(n.f)) {
-			throw new Error("Parrow invalid field" + n.loc); // TODO
+			throw new StructError.UndefinedMember(structp, n.f, n.loc);
 		}
-
 		n.expr = new Eaccess_field(n.e.expr, structp.s.fields.get(n.f));
 		n.expr.typ = structp.s.fields.get(n.f).field_typ;
 	}
@@ -177,30 +164,26 @@ public class Typing implements Pvisitor {
 	@Override
 	public void visit(Pcall n) {
 		if (!funs.containsKey(n.f)) {
-			throw new Error("Pcall no fun" + n.loc); // TODO
+			throw new FunctionError.UndefinedFunctionError(n.f, n.loc);
 		}
-
 		Decl_fun fun = funs.get(n.f);
-
 		if (n.l.size() != fun.fun_formals.size()) {
-			throw new Error("invalid signature" + n.loc); // TODO
+			throw new FunctionError.InvalidArgumentNumber(n.f, n.loc);
 		}
-
 		Iterator<Pexpr> it1 = n.l.iterator();
 		Iterator<Decl_var> it2 = fun.fun_formals.iterator();
 		LinkedList<Expr> el = new LinkedList<>();
-
+		int nArg = 1;
 		while (it1.hasNext() && it2.hasNext()) {
 			Pexpr pexpr = it1.next();
 			Decl_var dvar = it2.next();
-
 			pexpr.accept(this);
-
 			if (!pexpr.expr.typ.equals(dvar.t)) {
-				throw new Error("invalid formal" + n.loc); // TODO
+				throw new FunctionError.InvalidArgumentType(n.f, nArg, n.loc);
 			} else {
-				el.add(pexpr.expr); // TODO: addlast ??
+				el.add(pexpr.expr);
 			}
+			nArg++;
 		}
 		n.expr = new Ecall(n.f, el);
 		n.expr.typ = fun.fun_typ;
@@ -208,12 +191,11 @@ public class Typing implements Pvisitor {
 
 	@Override
 	public void visit(Psizeof n) {
-
 		if (structs.containsKey(n.id)) {
 			n.expr = new Esizeof(structs.get(n.id));
 			n.expr.typ = new Tint();
 		} else {
-			throw new Error("sizeof invalid struct" + n.loc); // TODO
+			throw new StructError.UndefinedStructError(n.id, n.loc);
 		}
 
 	}
@@ -221,14 +203,12 @@ public class Typing implements Pvisitor {
 	@Override
 	public void visit(Pskip n) {
 		n.stmt = new Sskip();
-
 	}
 
 	@Override
 	public void visit(Peval n) {
 		n.e.accept(this);
 		n.stmt = new Sexpr(n.e.expr);
-
 	}
 
 	@Override
@@ -244,26 +224,19 @@ public class Typing implements Pvisitor {
 		n.e.accept(this);
 		n.s1.accept(this);
 		n.stmt = new Swhile(n.e.expr, n.s1.stmt);
-
 	}
 
 	@Override
 	public void visit(Pbloc n) {
-
 		LinkedList<Decl_var> dl = new LinkedList<>();
 		LinkedList<Stmt> sl = new LinkedList<>();
-
-		// on regarde si toutes les variables sont bien typees
 		n.vl.forEach(var -> {
 			var.typ.accept(this);
 		});
-
-		// on construit un environnement local pour y typer les instructions
 		Env localEnv = new Env();
 		n.vl.forEach(v -> {
 			if (localEnv.containsKey(v.id)) {
-				System.out.println(v.id);
-				throw new Error("redefinition symbole"); // TODO
+				throw new IdentError.RedeclarationError(v.id, n.loc);
 			}
 			Decl_var dv = new Decl_var(v.typ.typ, v.id);
 			localEnv.put(v.id, dv);
@@ -275,28 +248,30 @@ public class Typing implements Pvisitor {
 			sl.add(s.stmt);
 		});
 		envs.pop();
-
 		n.stmt = new Sblock(dl, sl);
 	}
 
 	@Override
 	public void visit(Preturn n) {
 		n.e.accept(this);
-		// TODO: check return type
+		if (!n.e.expr.typ.equals(returnTyp)) {
+			throw new FunctionError.ReturnTypeError(returnTyp, n.e.expr.typ, n.loc);
+		}
+		returning = true;
 		n.stmt = new Sreturn(n.e.expr);
 	}
 
 	@Override
 	public void visit(Pstruct n) {
 		if (structs.containsKey(n.s)) {
-			throw new Error("redefinition structure"); // TODO
+			throw new StructError.RedefinitionError(n.s);
 		}
 		Structure struct = new Structure(n.s);
 		structs.put(struct.str_name, struct);
 		int i = 0;
-		for (Pdeclvar var: n.fl) {
+		for (Pdeclvar var : n.fl) {
 			if (struct.fields.containsKey(var.id)) {
-				throw new Error("redefinition id"); // TODO
+				throw new StructError.DuplicateError(var.id, var.loc);
 			}
 			var.typ.accept(this);
 			Field f = new Field(var.id, var.typ.typ);
@@ -309,35 +284,33 @@ public class Typing implements Pvisitor {
 	@Override
 	public void visit(Pfun n) {
 		if (funs.containsKey(n.s)) {
-			throw new Error("redefinition fonction"); // TODO
+			throw new FunctionError.RedefinitionError(n.s, n.loc);
 		}
 		n.ty.accept(this);
+		returnTyp = n.ty.typ;
 		n.pl.forEach(var -> {
 			var.typ.accept(this);
 		});
-
 		LinkedList<Decl_var> formals = new LinkedList<>();
 		n.pl.forEach(var -> {
 			formals.add(new Decl_var(var.typ.typ, var.id));
 		});
-		// on peut ajouter la signature de la fonction sans instructions
 		Decl_fun fun = new Decl_fun(n.ty.typ, n.s, formals, null);
 		funs.put(fun.fun_name, fun);
-
-		// on construit un environnement local pour y typer les instructions
 		Env localEnv = new Env();
 		n.pl.forEach(var -> {
 			if (localEnv.containsKey(var.id)) {
-				throw new Error("redefinition symbole"); // TODO
+				throw new FunctionError.ParameterRedefinitionError(var.id, var.loc);
 			}
 			localEnv.put(var.id, new Decl_var(var.typ.typ, var.id));
 		});
+		returning = false;
 		envs.push(localEnv);
-		// on type les instructions dans l'environnement local
 		n.b.accept(this);
 		envs.pop();
-
-		// on ajoute a la declaration de la fonction son corps type
+		if (!returning) {
+			System.err.println("warning: control reaches end of non-void function at " + n.loc);
+		}
 		fun.fun_body = n.b.stmt;
 	}
 }

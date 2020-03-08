@@ -53,7 +53,7 @@ class ToLTL implements ERTLVisitor {
         Operand d2 = coloring.colors.get(o.r2);
         if (d1 instanceof Reg && d2 instanceof Reg) {
             body.graph.put(Ld, new Lstore(((Reg) d1).r, ((Reg) d2).r, o.i, o.l));
-            
+
         } else if (d1 instanceof Reg && d2 instanceof Spilled) {
             Label Ltmp = o.l;
             Ltmp = body.add(new Lstore(((Reg) d1).r, Register.tmp1, o.i, Ltmp));

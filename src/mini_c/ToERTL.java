@@ -36,6 +36,7 @@ class ToERTL implements RTLVisitor {
 
     public void visit(Rmbinop o) {
         if (o.m == Mbinop.Mdiv) {
+            //TODO check div
             Label Ltmp = o.l;
             Ltmp = body.add(new ERmbinop(Mbinop.Mmov, Register.rax, o.r2, Ltmp));
             Ltmp = body.add(new ERmbinop(Mbinop.Mdiv, o.r1, Register.rax, Ltmp));
