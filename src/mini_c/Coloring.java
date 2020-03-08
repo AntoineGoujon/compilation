@@ -29,7 +29,7 @@ class Coloring {
         while (!todo.isEmpty()) {
             Register r = this.popNext(ig);
             if (r != null) {
-                Register color = todo.get(r).iterator().next(); //TODO select preference first
+                Register color = todo.get(r).iterator().next(); // TODO select preference first
                 colors.put(r, new Reg(color));
                 ig.graph.get(r).intfs.forEach(interf -> {
                     if (todo.containsKey(interf)) {
@@ -39,7 +39,7 @@ class Coloring {
             } else {
                 r = todo.keySet().iterator().next();
                 nlocals += 1;
-                colors.put(r, new Spilled(-8*nlocals)); // TODO check pos / rbp
+                colors.put(r, new Spilled(-8 * nlocals)); // TODO check pos / rbp
             }
             todo.remove(r);
         }

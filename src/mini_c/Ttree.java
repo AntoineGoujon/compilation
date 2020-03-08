@@ -116,7 +116,8 @@ class Decl_var {
 
 abstract class Expr {
 	public Typ typ; // chaque expression est décorée par son type
-	boolean pure;	
+	boolean pure;
+
 	abstract void accept(Visitor v);
 }
 
