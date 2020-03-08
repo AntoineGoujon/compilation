@@ -15,8 +15,6 @@ import java.util.Set;
 
 //TODO more smart constructors
 
-//TODO: check terminating
-
 public class ToRTL implements Visitor {
 
 	static class Env extends HashMap<String, Register> {
@@ -42,30 +40,41 @@ public class ToRTL implements Visitor {
 	}
 
 	public void branch(Expr e, Label Lt, Label Lf) {
+		Register r;
 		if (e instanceof Ebinop) {
 			Ebinop ebinop = (Ebinop) e;
 			switch (ebinop.b) {
 				case Bor:
 					branch(ebinop.e2, Lt, Lf);
 					branch(ebinop.e1, Lt, Ld);
-					break;
+					return;
 				case Band:
 					branch(ebinop.e2, Lt, Lf);
 					branch(ebinop.e1, Ld, Lf);
-					break;
-				default:
-					Register r = new Register();
-					Ld = body.add(new Rmubranch(new Mjz(), r, Lf, Lt));
+					return;
+				case Ble:
+					r = new Register();
+					Ld = body.add(new Rmbbranch(Mbbranch.Mjle, r, rd, Lt, Lf));
+					ebinop.e1.accept(this);
 					rd = r;
-					e.accept(this);
+					ebinop.e2.accept(this);
+					return;
+				case Blt:
+					r = new Register();
+					Ld = body.add(new Rmbbranch(Mbbranch.Mjl, r, rd, Lt, Lf));
+					ebinop.e1.accept(this);
+					rd = r;
+					ebinop.e2.accept(this);
+					return;
+				default:
+					// TODO: il est possible de traiter plus de cas
 					break;
 			}
-		} else {
-			Register r = new Register();
-			Ld = body.add(new Rmubranch(new Mjz(), r, Lf, Lt));
-			rd = r;
-			e.accept(this);
 		}
+		r = new Register();
+		Ld = body.add(new Rmubranch(new Mjz(), r, Lf, Lt));
+		rd = r;
+		e.accept(this);
 	}
 
 	@Override

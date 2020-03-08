@@ -1,11 +1,9 @@
 int g() {
-	return 1;
+	return 200;
 }
 
-struct S {
-	int a;
-};
 int main()
 {
-    return 1>2;
+	putchar(g()/2);
+    return 2;
 }
