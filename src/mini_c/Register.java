@@ -102,4 +102,42 @@ public class Register {
 	static final Register tmp1 = new Register("%r15");
 	static final Register tmp2 = new Register("%r11");
 
+	static String addressLowestByte(String name) {
+		switch (name) {
+			case "%rax":
+				return "%al";
+			case "%rbx":
+				return "%bl";
+			case "%rcx":
+				return "%cl";
+			case "%rdx":
+				return "%dl";
+			case "%rsi":
+				return "%sil";
+			case "%rdi":
+				return "%dil";
+			case "%rbp":
+				return "%bpl";
+			case "%rsp":
+				return "spl";
+			case "%r8":
+				return "%r8b";
+			case "%r9":
+				return "%r9b";
+			case "%r10":
+				return "%r10b";
+			case "%r11":
+				return "%r11b";
+			case "%r12":
+				return "%r12b";
+			case "%r13":
+				return "%r13b";
+			case "%r14":
+				return "%r14b";
+			case "%r15":
+				return "%r15b";
+		}
+		return name; // TODO change this hack
+	}
+
 }

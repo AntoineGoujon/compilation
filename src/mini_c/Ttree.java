@@ -257,11 +257,14 @@ class Esizeof extends Expr {
 // instruction
 
 abstract class Stmt {
+	boolean returning;
+
 	abstract void accept(Visitor v);
 }
 
 class Sskip extends Stmt {
 	Sskip() {
+		this.returning = false;
 	}
 
 	void accept(Visitor v) {
@@ -274,6 +277,7 @@ class Sexpr extends Stmt {
 
 	Sexpr(Expr e) {
 		this.e = e;
+		this.returning = false;
 	}
 
 	void accept(Visitor v) {
@@ -290,6 +294,8 @@ class Sif extends Stmt {
 		this.e = e;
 		this.s1 = s1;
 		this.s2 = s2;
+		// approximation
+		this.returning = s1.returning && s2.returning;
 	}
 
 	void accept(Visitor v) {
@@ -304,6 +310,8 @@ class Swhile extends Stmt {
 	Swhile(Expr e, Stmt s) {
 		this.e = e;
 		this.s = s;
+		// on ne sait pas
+		this.returning = false;
 	}
 
 	void accept(Visitor v) {
@@ -318,6 +326,10 @@ class Sblock extends Stmt {
 	Sblock(LinkedList<Decl_var> dl, LinkedList<Stmt> sl) {
 		this.dl = dl;
 		this.sl = sl;
+		this.returning = false;
+		for (Stmt instr : sl) {
+			this.returning = this.returning || instr.returning;
+		}
 	}
 
 	void accept(Visitor v) {
@@ -330,6 +342,7 @@ class Sreturn extends Stmt {
 
 	Sreturn(Expr e) {
 		this.e = e;
+		this.returning = true;
 	}
 
 	void accept(Visitor v) {

@@ -21,6 +21,7 @@ public class ToRTL implements Visitor {
 		private static final long serialVersionUID = 1L;
 	}
 
+	static final int WORDSIZE = 8;
 	private LinkedList<Env> envs = new LinkedList<>();
 	Set<Register> locals;
 	private RTLgraph body;
@@ -101,7 +102,7 @@ public class ToRTL implements Visitor {
 		Tstructp structp = (Tstructp) n.e.typ;
 		int i = structp.s.fields_i.get(n.f.field_name);
 
-		Ld = body.add(new Rload(r1, i * 8, rd, Ld));
+		Ld = body.add(new Rload(r1, i * WORDSIZE, rd, Ld));
 		rd = r1;
 		n.e.accept(this);
 	}
@@ -130,7 +131,7 @@ public class ToRTL implements Visitor {
 		Tstructp structp = (Tstructp) n.e1.typ;
 		int i = structp.s.fields_i.get(n.f.field_name);
 		Ld = body.add(new Rmbinop(Mbinop.Mmov, r1, rd, Ld));
-		Ld = body.add(new Rstore(r1, r2, i * 8, Ld));
+		Ld = body.add(new Rstore(r1, r2, i * WORDSIZE, Ld));
 		rd = r2;
 		n.e1.accept(this);
 		rd = r1;
@@ -177,86 +178,86 @@ public class ToRTL implements Visitor {
 				op = Mbinop.Msetg;
 				break;
 			case Badd:
-				if (n.e1 instanceof Econst && n.e2 instanceof Econst) {
-					Econst n1 = (Econst) n.e1;
-					Econst n2 = (Econst) n.e2;
-					Ld = body.add(new Rconst(n1.i + n2.i, rd, Ld));
-					return;
-				} else if (n.e1 instanceof Econst && ((Econst) n.e1).i == 0) {
-					n.e2.accept(this);
-					return;
-				} else if (n.e2 instanceof Econst && ((Econst) n.e2).i == 0) {
-					n.e1.accept(this);
-					return;
-				} else if (n.e1 instanceof Econst) {
-					int c = ((Econst) n.e1).i;
-					Ld = body.add(new Rmunop(new Maddi(c), rd, Ld));
-					n.e2.accept(this);
-					return;
-				} else if (n.e2 instanceof Econst) {
-					int c = ((Econst) n.e2).i;
-					Ld = body.add(new Rmunop(new Maddi(c), rd, Ld));
-					n.e1.accept(this);
-					return;
-				}
+				// if (n.e1 instanceof Econst && n.e2 instanceof Econst) {
+				// 	Econst n1 = (Econst) n.e1;
+				// 	Econst n2 = (Econst) n.e2;
+				// 	Ld = body.add(new Rconst(n1.i + n2.i, rd, Ld));
+				// 	return;
+				// } else if (n.e1 instanceof Econst && ((Econst) n.e1).i == 0) {
+				// 	n.e2.accept(this);
+				// 	return;
+				// } else if (n.e2 instanceof Econst && ((Econst) n.e2).i == 0) {
+				// 	n.e1.accept(this);
+				// 	return;
+				// } else if (n.e1 instanceof Econst) {
+				// 	int c = ((Econst) n.e1).i;
+				// 	Ld = body.add(new Rmunop(new Maddi(c), rd, Ld));
+				// 	n.e2.accept(this);
+				// 	return;
+				// } else if (n.e2 instanceof Econst) {
+				// 	int c = ((Econst) n.e2).i;
+				// 	Ld = body.add(new Rmunop(new Maddi(c), rd, Ld));
+				// 	n.e1.accept(this);
+				// 	return;
+				// }
 				op = Mbinop.Madd;
 				break;
 			case Bsub:
-				if (n.e1 instanceof Econst && n.e2 instanceof Econst) {
-					Econst n1 = (Econst) n.e1;
-					Econst n2 = (Econst) n.e2;
-					Ld = body.add(new Rconst(n1.i - n2.i, rd, Ld));
-					return;
-				} else if (n.e1 instanceof Econst && ((Econst) n.e1).i == 0) {
-					n.e2.accept(this);
-					return;
-				} else if (n.e2 instanceof Econst && ((Econst) n.e2).i == 0) {
-					n.e1.accept(this);
-					return;
-				} else if (n.e1 instanceof Econst) {
-					int c = ((Econst) n.e1).i;
-					Ld = body.add(new Rmunop(new Maddi(-c), rd, Ld));
-					n.e2.accept(this);
-					return;
-				} else if (n.e2 instanceof Econst) {
-					int c = ((Econst) n.e2).i;
-					Ld = body.add(new Rmunop(new Maddi(-c), rd, Ld));
-					n.e1.accept(this);
-					return;
-				}
+				// if (n.e1 instanceof Econst && n.e2 instanceof Econst) {
+				// 	Econst n1 = (Econst) n.e1;
+				// 	Econst n2 = (Econst) n.e2;
+				// 	Ld = body.add(new Rconst(n1.i - n2.i, rd, Ld));
+				// 	return;
+				// } else if (n.e1 instanceof Econst && ((Econst) n.e1).i == 0) {
+				// 	n.e2.accept(this);
+				// 	return;
+				// } else if (n.e2 instanceof Econst && ((Econst) n.e2).i == 0) {
+				// 	n.e1.accept(this);
+				// 	return;
+				// } else if (n.e1 instanceof Econst) {
+				// 	int c = ((Econst) n.e1).i;
+				// 	Ld = body.add(new Rmunop(new Maddi(-c), rd, Ld));
+				// 	n.e2.accept(this);
+				// 	return;
+				// } else if (n.e2 instanceof Econst) {
+				// 	int c = ((Econst) n.e2).i;
+				// 	Ld = body.add(new Rmunop(new Maddi(-c), rd, Ld));
+				// 	n.e1.accept(this);
+				// 	return;
+				// }
 				op = Mbinop.Msub;
 				break;
 			case Bmul:
-				if (n.e1 instanceof Econst && n.e2 instanceof Econst) {
-					Econst n1 = (Econst) n.e1;
-					Econst n2 = (Econst) n.e2;
-					Ld = body.add(new Rconst(n1.i * n2.i, rd, Ld));
-					return;
-				} else if (n.e1 instanceof Econst && ((Econst) n.e1).i == 0) {
-					if (n.e2.pure) {
-						Ld = body.add(new Rconst(0, rd, Ld));
-						return;
-					}
-				} else if (n.e2 instanceof Econst && ((Econst) n.e2).i == 0) {
-					if (n.e1.pure) {
-						Ld = body.add(new Rconst(0, rd, Ld));
-						return;
-					}
-				}
+				// if (n.e1 instanceof Econst && n.e2 instanceof Econst) {
+				// 	Econst n1 = (Econst) n.e1;
+				// 	Econst n2 = (Econst) n.e2;
+				// 	Ld = body.add(new Rconst(n1.i * n2.i, rd, Ld));
+				// 	return;
+				// } else if (n.e1 instanceof Econst && ((Econst) n.e1).i == 0) {
+				// 	if (n.e2.pure) {
+				// 		Ld = body.add(new Rconst(0, rd, Ld));
+				// 		return;
+				// 	}
+				// } else if (n.e2 instanceof Econst && ((Econst) n.e2).i == 0) {
+				// 	if (n.e1.pure) {
+				// 		Ld = body.add(new Rconst(0, rd, Ld));
+				// 		return;
+				// 	}
+				// }
 				op = Mbinop.Mmul;
 				break;
 			case Bdiv:
-				if (n.e1 instanceof Econst && n.e2 instanceof Econst) {
-					Econst n1 = (Econst) n.e1;
-					Econst n2 = (Econst) n.e2;
-					Ld = body.add(new Rconst(n1.i / n2.i, rd, Ld));
-					return;
-				} else if (n.e1 instanceof Econst && ((Econst) n.e1).i == 0) {
-					if (n.e2.pure) {
-						Ld = body.add(new Rconst(0, rd, Ld));
-						return;
-					}
-				}
+				// if (n.e1 instanceof Econst && n.e2 instanceof Econst) {
+				// 	Econst n1 = (Econst) n.e1;
+				// 	Econst n2 = (Econst) n.e2;
+				// 	Ld = body.add(new Rconst(n1.i / n2.i, rd, Ld));
+				// 	return;
+				// } else if (n.e1 instanceof Econst && ((Econst) n.e1).i == 0) {
+				// 	if (n.e2.pure) {
+				// 		Ld = body.add(new Rconst(0, rd, Ld));
+				// 		return;
+				// 	}
+				// }
 				op = Mbinop.Mdiv;
 				break;
 			case Bor:
@@ -293,7 +294,7 @@ public class ToRTL implements Visitor {
 
 	@Override
 	public void visit(Esizeof n) {
-		int s = n.s.fields.size() * 8;
+		int s = n.s.fields.size() * WORDSIZE;
 		Ld = body.add(new Rconst(s, rd, Ld));
 	}
 
@@ -304,33 +305,33 @@ public class ToRTL implements Visitor {
 	@Override
 	public void visit(Sexpr n) {
 		// TODO useful or not??
-		if (n.e instanceof Eassign_local) {
-			Eassign_local nl = (Eassign_local) n.e;
-			Register r1 = null;
-			Register r2 = new Register();
-			for (Env env : envs) {
-				if (env.containsKey(nl.i)) {
-					r1 = env.get(nl.i);
-					break;
-				}
-			}
-			Ld = body.add(new Rmbinop(Mbinop.Mmov, r2, r1, Ld));
-			rd = r2;
-			nl.e.accept(this);
-		} else if (n.e instanceof Eassign_field) {
-			Eassign_field nl = (Eassign_field) n.e;
-			Register r1 = new Register();
-			Register r2 = new Register();
-			Tstructp structp = (Tstructp) nl.e1.typ;
-			int i = structp.s.fields_i.get(nl.f.field_name);
-			Ld = body.add(new Rstore(r1, r2, i * 8, Ld));
-			rd = r2;
-			nl.e1.accept(this);
-			rd = r1;
-			nl.e2.accept(this);
-		} else {
+		// if (n.e instanceof Eassign_local) {
+		// 	Eassign_local nl = (Eassign_local) n.e;
+		// 	Register r1 = null;
+		// 	Register r2 = new Register();
+		// 	for (Env env : envs) {
+		// 		if (env.containsKey(nl.i)) {
+		// 			r1 = env.get(nl.i);
+		// 			break;
+		// 		}
+		// 	}
+		// 	Ld = body.add(new Rmbinop(Mbinop.Mmov, r2, r1, Ld));
+		// 	rd = r2;
+		// 	nl.e.accept(this);
+		// } else if (n.e instanceof Eassign_field) {
+		// 	Eassign_field nl = (Eassign_field) n.e;
+		// 	Register r1 = new Register();
+		// 	Register r2 = new Register();
+		// 	Tstructp structp = (Tstructp) nl.e1.typ;
+		// 	int i = structp.s.fields_i.get(nl.f.field_name);
+		// 	Ld = body.add(new Rstore(r1, r2, i * WORDSIZE, Ld));
+		// 	rd = r2;
+		// 	nl.e1.accept(this);
+		// 	rd = r1;
+		// 	nl.e2.accept(this);
+		// } else {
 			n.e.accept(this);
-		}
+		// }
 	}
 
 	@Override

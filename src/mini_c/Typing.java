@@ -4,8 +4,6 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Iterator;
 
-//TODO question: une fonction termine elle toujours par return?
-
 public class Typing implements Pvisitor {
 
 	static class Env extends HashMap<String, Decl_var> {
@@ -17,7 +15,6 @@ public class Typing implements Pvisitor {
 	private HashMap<String, Decl_fun> funs = new HashMap<>();
 
 	private Typ returnTyp;
-	private boolean returning;
 
 	public Typing() {
 		LinkedList<Decl_var> putchar_fun_formals = new LinkedList<>();
@@ -44,6 +41,11 @@ public class Typing implements Pvisitor {
 		});
 		if (!funs.containsKey("main")) {
 			throw new FunctionError.UndefinedFunctionError("main", new Loc(0, 0));
+		}
+		// on verifie le profil de la fonction 'main'
+		Decl_fun dmain = funs.get("main");
+		if (!dmain.fun_typ.equals(new Tint()) || dmain.fun_formals.size() != 0) {
+			throw new FunctionError.ReturnTypeError(new Tint(), dmain.fun_typ, new Loc(0, 0));
 		}
 		file = new File(new LinkedList<>(funs.values()));
 	}
@@ -243,10 +245,10 @@ public class Typing implements Pvisitor {
 			dl.add(dv);
 		});
 		envs.push(localEnv);
-		n.sl.forEach(s -> {
+		for (Pstmt s : n.sl) {
 			s.accept(this);
 			sl.add(s.stmt);
-		});
+		}
 		envs.pop();
 		n.stmt = new Sblock(dl, sl);
 	}
@@ -257,7 +259,6 @@ public class Typing implements Pvisitor {
 		if (!n.e.expr.typ.equals(returnTyp)) {
 			throw new FunctionError.ReturnTypeError(returnTyp, n.e.expr.typ, n.loc);
 		}
-		returning = true;
 		n.stmt = new Sreturn(n.e.expr);
 	}
 
@@ -304,12 +305,12 @@ public class Typing implements Pvisitor {
 			}
 			localEnv.put(var.id, new Decl_var(var.typ.typ, var.id));
 		});
-		returning = false;
 		envs.push(localEnv);
 		n.b.accept(this);
 		envs.pop();
-		if (!returning) {
+		if (!n.b.stmt.returning) {
 			System.err.println("warning: control reaches end of non-void function at " + n.loc);
+			((Sblock)n.b.stmt).sl.add(new Sreturn(new Econst(0)));
 		}
 		fun.fun_body = n.b.stmt;
 	}

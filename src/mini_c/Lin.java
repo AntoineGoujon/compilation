@@ -8,7 +8,6 @@ class Lin implements LTLVisitor {
     private X86_64 asm; // code en cours de construction
     private HashSet<Label> visited; // instructions déjà traduites
 
-
     public Lin() {
         asm = new X86_64();
         visited = new HashSet<>();
@@ -34,7 +33,7 @@ class Lin implements LTLVisitor {
     }
 
     public void visit(Lmubranch o) {
-
+        // test negatif pas encore produit
         if (!visited.contains(o.l2)) {
             asm.needLabel(o.l1);
             if (o.m instanceof Mjz) {
@@ -53,6 +52,7 @@ class Lin implements LTLVisitor {
             lin(o.l2);
             lin(o.l1);
 
+        // test positif pas encore produit
         } else if (!visited.contains(o.l1)) {
             asm.needLabel(o.l2);
             if (o.m instanceof Mjz) {
@@ -94,7 +94,6 @@ class Lin implements LTLVisitor {
     }
 
     public void visit(Lmbbranch o) {
-
         if (!visited.contains(o.l2)) {
             asm.needLabel(o.l1);
             switch (o.m) {
@@ -109,7 +108,6 @@ class Lin implements LTLVisitor {
             }
             lin(o.l2);
             lin(o.l1);
-
         } else if (!visited.contains(o.l1)) {
             asm.needLabel(o.l2);
             switch (o.m) {
@@ -168,10 +166,14 @@ class Lin implements LTLVisitor {
             asm.addq(op1, op2);
         } else if (o.m instanceof Msetei) {
             asm.cmpq(((Msetei) o.m).n, o.o.toString());
-            asm.sete(o.o.toString());
+            asm.sete(Register.addressLowestByte(o.o.toString()));
+            asm.movzbq(Register.addressLowestByte(o.o.toString()), o.o.toString());
+
         } else if (o.m instanceof Msetnei) {
             asm.cmpq(((Msetnei) o.m).n, o.o.toString());
-            asm.sete(o.o.toString());
+            asm.setne(Register.addressLowestByte(o.o.toString()));
+            asm.movzbq(Register.addressLowestByte(o.o.toString()), o.o.toString());
+
         } else {
             // TODO never get to this case
         }
@@ -181,7 +183,6 @@ class Lin implements LTLVisitor {
     public void visit(Lmbinop o) {
         String op1 = o.o1.toString();
         String op2 = o.o2.toString();
-
         switch (o.m) {
             case Mmov:
                 asm.movq(op1, op2);
@@ -196,26 +197,39 @@ class Lin implements LTLVisitor {
                 asm.imulq(op1, op2);
                 break;
             case Mdiv:
-                asm.idivq(op1); // TODO check which one
+                asm.cqto();
+                asm.idivq(op1);
                 break;
             case Msete:
-                throw new Error("unsupported op");
-            // break;
+                asm.cmpq(op1, op2);
+                asm.sete(Register.addressLowestByte(op2));
+                asm.movzbq(Register.addressLowestByte(op2), op2); // TODO faux
+                break;
             case Msetne:
-                throw new Error("unsupported op");
-            // break;
+                asm.cmpq(op1, op2);
+                asm.setne(Register.addressLowestByte(op2));
+                asm.movzbq(Register.addressLowestByte(op2), op2);
+                break;
             case Msetl:
-                throw new Error("unsupported op");
-            // break;
+                asm.cmpq(op1, op2);
+                asm.setl(Register.addressLowestByte(op2));
+                asm.movzbq(Register.addressLowestByte(op2), op2);
+                break;
             case Msetle:
-                throw new Error("unsupported op");
-            // break;
+                asm.cmpq(op1, op2);
+                asm.setle(Register.addressLowestByte(op2));
+                asm.movzbq(Register.addressLowestByte(op2), op2);
+                break;
             case Msetg:
-                throw new Error("unsupported op");
-            // break;
+                asm.cmpq(op1, op2);
+                asm.setg(Register.addressLowestByte(op2));
+                asm.movzbq(Register.addressLowestByte(op2), op2);
+                break;
             case Msetge:
-                throw new Error("unsupported op");
-            // break;
+                asm.cmpq(op1, op2);
+                asm.setge(Register.addressLowestByte(op2));
+                asm.movzbq(Register.addressLowestByte(op2), op2);
+                break;
         }
         lin(o.l);
     }
