@@ -10,11 +10,14 @@ class Arcs {
     Set<Register> intfs = new HashSet<>();
 }
 
+// TODO: supprimer pref si arrete interf
 class Interference {
     Map<Register, Arcs> graph;
 
     Interference(Liveness lg) {
         graph = new HashMap<>();
+        // premier parcours pour ajouter les arêtes de préférence et d'interference pour
+        // chaque instruction mov x y (avec x et y distincts).
         lg.info.values().forEach(li -> {
             if (li.instr instanceof ERmbinop) {
                 ERmbinop instrbinop = (ERmbinop) li.instr;
@@ -40,6 +43,8 @@ class Interference {
                 }
             }
         });
+        // second parcours pour ajouter les aretes d'interferences pour toutes les
+        // autres intructions
         lg.info.values().forEach(li -> {
             if (!(li.instr instanceof ERmbinop && ((ERmbinop) li.instr).m == Mbinop.Mmov)) {
                 li.defs.forEach(v -> {
@@ -59,6 +64,13 @@ class Interference {
                 });
             }
         });
+        // on supprime les aretes de preference si il existe aussi une arrete
+        // d'intereference. Ce n'est pas obligatoire pour l'algo de coloriage simple suggere mais
+        // necessaire pour George-Appel
+        graph.values().forEach(arcs -> {
+            arcs.prefs.removeAll(arcs.intfs);
+        });
+
     }
 
     void print() {

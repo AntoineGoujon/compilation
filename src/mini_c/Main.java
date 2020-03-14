@@ -73,7 +73,7 @@ public class Main {
         Liveness live = new Liveness(fun.body);
         Interference interf = new Interference(live);
         interf.print();
-        Coloring colored = new Coloring(interf);
+        ColoringGA colored = new ColoringGA(interf);
         colored.print();
       });
     }

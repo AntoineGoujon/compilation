@@ -3,8 +3,6 @@ package mini_c;
 import java.util.LinkedList;
 import java.util.List;
 
-//TODO optimisation appel terminal
-
 class ToERTL implements RTLVisitor {
 
     private ERTLfile ertl;
