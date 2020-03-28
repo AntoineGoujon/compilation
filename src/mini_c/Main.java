@@ -81,11 +81,12 @@ public class Main {
     // Debug Kildall
     if (debug) {
       ertl.funs.forEach(fun -> {
-        Liveness live = new Liveness(fun.body);
-        Interference interf = new Interference(live);
-        interf.print();
-        Coloring colored = new ColoringGA(interf);
+
+        Coloring colored = new ColoringGA(new Interference(new Liveness(fun.body)));
         colored.print();
+        Coloring colored2 = new ColoringNaive(new Interference(new Liveness(fun.body)));
+        colored2.print();
+
         System.exit(0);
 
       });
