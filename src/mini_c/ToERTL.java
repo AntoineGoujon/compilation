@@ -1,5 +1,6 @@
 package mini_c;
 
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -8,6 +9,9 @@ class ToERTL implements RTLVisitor {
     private ERTLfile ertl;
     private ERTLgraph body;
     private Label Ld;
+
+    // needed for recursive tail calls optimisation
+    private RTLfun currentFun;
 
     public ToERTL() {
         ertl = new ERTLfile();
@@ -65,17 +69,30 @@ class ToERTL implements RTLVisitor {
         Label Ltmp = o.l;
         int a = Math.min(Register.parameters.size(), o.rl.size());
         int b = Math.max(0, o.rl.size() - Register.parameters.size());
-        if (b > 0) {
-            Ltmp = body.add(new ERmunop(new Maddi(b * 8), Register.rsp, Ltmp));
-        }
-        Ltmp = body.add(new ERmbinop(Mbinop.Mmov, Register.result, o.r, Ltmp));
-        Ltmp = body.add(new ERcall(o.s, a, Ltmp));
-
-        for (int j = Register.parameters.size(); j < o.rl.size(); j++) {
-            Ltmp = body.add(new ERpush_param(o.rl.get(j), Ltmp));
-        }
-        for (int j = 0; j < a; j++) {
-            Ltmp = body.add(new ERmbinop(Mbinop.Mmov, o.rl.get(j), Register.parameters.get(j), Ltmp));
+        if (Main.optimizeRecTailCalls && o.tailCall && o.s.equals(currentFun.name)) {
+            Ltmp = body.add(new ERgoto(currentFun.entry));
+            // en respectant la semantique de l'appel de fonction pour le passage des parametres
+            // for (int j = 0; j < b; j++) {
+            //     Ltmp = body.add(new ERput_param((j + 2) * 8, o.rl.get(j + Register.parameters.size()), Ltmp));
+            // }
+            // for (int j = 0; j < a; j++) {
+            //     Ltmp = body.add(new ERmbinop(Mbinop.Mmov, o.rl.get(j), Register.parameters.get(j), Ltmp));
+            // }
+            for (int j = 0; j < o.rl.size(); j++) {
+                Ltmp = body.add(new ERmbinop(Mbinop.Mmov, o.rl.get(j), currentFun.formals.get(j), Ltmp));
+            }
+        } else {
+            if (b > 0) {
+                Ltmp = body.add(new ERmunop(new Maddi(b * 8), Register.rsp, Ltmp));
+            }
+            Ltmp = body.add(new ERmbinop(Mbinop.Mmov, Register.result, o.r, Ltmp));
+            Ltmp = body.add(new ERcall(o.s, a, Ltmp));
+            for (int j = Register.parameters.size(); j < o.rl.size(); j++) {
+                Ltmp = body.add(new ERpush_param(o.rl.get(j), Ltmp));
+            }
+            for (int j = 0; j < a; j++) {
+                Ltmp = body.add(new ERmbinop(Mbinop.Mmov, o.rl.get(j), Register.parameters.get(j), Ltmp));
+            }
         }
         body.graph.put(Ld, new ERgoto(Ltmp));
     }
@@ -91,6 +108,7 @@ class ToERTL implements RTLVisitor {
         ertlfun.locals = o.locals;
         ertlfun.body = new ERTLgraph();
         body = ertlfun.body;
+        currentFun = o;
 
         Label Ltmp = o.entry;
         int a = Math.min(Register.parameters.size(), o.formals.size());
@@ -101,7 +119,6 @@ class ToERTL implements RTLVisitor {
         for (int j = 0; j < a; j++) {
             Ltmp = body.add(new ERmbinop(Mbinop.Mmov, Register.parameters.get(j), o.formals.get(j), Ltmp));
         }
-
         List<Register> cs = new LinkedList<>();
         for (Register csr : Register.callee_saved) {
             Register r = new Register();

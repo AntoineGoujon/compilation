@@ -215,6 +215,8 @@ class Rcall extends RTL {
   List<Register> rl;
   Label l;
 
+  boolean tailCall = false;
+
   Rcall(Register r, String s, List<Register> rl, Label l) {
     this.r = r;
     this.s = s;
@@ -222,12 +224,20 @@ class Rcall extends RTL {
     this.l = l;
   }
 
+  Rcall(Register r, String s, List<Register> rl, Label l, boolean tailCall) {
+    this.r = r;
+    this.s = s;
+    this.rl = rl;
+    this.l = l;
+    this.tailCall = tailCall;
+  }
+
   void accept(RTLVisitor v) {
     v.visit(this);
   }
 
   public String toString() {
-    return r + " <- call " + s + rl + " --> " + l;
+    return r + " <- call " + s + rl + " --> " + l + " tailCall: " + tailCall;
   }
 
   Label[] succ() {

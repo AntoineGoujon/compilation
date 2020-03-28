@@ -216,6 +216,12 @@ public class ERTLinterp implements ERTLVisitor {
   }
 
   @Override
+  public void visit(ERput_param o) {
+    this.mem.store(get(Register.rbp),  o.i, get(o.r));
+    this.next = o.l;
+  }
+
+  @Override
   public void visit(ERpush_param o) {
     this.mem.push(get(o.r));
     this.next = o.l;

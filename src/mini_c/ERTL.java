@@ -472,6 +472,40 @@ class ERget_param extends ERTL {
   }
 }
 
+class ERput_param extends ERTL {
+  public int i;
+  public Register r;
+  public Label l;
+
+  ERput_param(int i, Register r, Label l) {
+    this.i = i;
+    this.r = r;
+    this.l = l;
+  }
+
+  void accept(ERTLVisitor v) {
+    v.visit(this);
+  }
+
+  public String toString() {
+    return "mov " + r + " stack(" + i + ") " + " --> " + l;
+  }
+
+  Label[] succ() {
+    return new Label[] { l };
+  }
+
+  @Override
+  Set<Register> def() {
+    return emptySet;
+  }
+
+  @Override
+  Set<Register> use() {
+    return singleton(r);
+  }
+}
+
 class ERpush_param extends ERTL {
   public Register r;
   public Label l;
@@ -653,6 +687,8 @@ interface ERTLVisitor {
 
   public void visit(ERpush_param o);
 
+  public void visit(ERput_param o);
+
   public void visit(ERreturn o);
 
   public void visit(ERTLfun o);
@@ -698,6 +734,9 @@ class EmptyERTLERTLVisitor implements ERTLVisitor {
   }
 
   public void visit(ERpush_param o) {
+  }
+
+  public void visit(ERput_param o) {
   }
 
   public void visit(ERreturn o) {

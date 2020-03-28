@@ -259,6 +259,9 @@ public class Typing implements Pvisitor {
 		if (!n.e.expr.typ.equals(returnTyp)) {
 			throw new FunctionError.ReturnTypeError(returnTyp, n.e.expr.typ, n.loc);
 		}
+		if (n.e.expr instanceof Ecall) {
+			((Ecall) n.e.expr).tailCall = true;
+		}
 		n.stmt = new Sreturn(n.e.expr);
 	}
 

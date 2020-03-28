@@ -11,6 +11,10 @@ public class Main {
   static boolean interp_ertl = false;
   static boolean interp_ltl = false;
   static boolean debug = false;
+  static boolean optimizeRecTailCalls = false;
+  static boolean optimizeSM = false;
+  static boolean optimize = false;
+
   static String file = null;
 
   static void usage() {
@@ -32,7 +36,14 @@ public class Main {
         interp_ltl = true;
       else if (arg.equals("--debug"))
         debug = true;
-      else {
+      else if (arg.equals("--optimize-rec-tailcalls"))
+        optimizeRecTailCalls = true;
+      else if (arg.equals("--optimize-sm"))
+        optimizeRecTailCalls = true;
+      else if (arg.equals("--optimize")) {
+        optimizeRecTailCalls = true;
+        optimizeSM = true;
+      } else {
         if (file != null)
           usage();
         if (!arg.endsWith(".c"))
@@ -73,8 +84,10 @@ public class Main {
         Liveness live = new Liveness(fun.body);
         Interference interf = new Interference(live);
         interf.print();
-        ColoringGA colored = new ColoringGA(interf);
+        Coloring colored = new ColoringGA(interf);
         colored.print();
+        System.exit(0);
+
       });
     }
     LTLfile ltl = (new ToLTL()).translate(ertl);

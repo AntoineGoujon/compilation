@@ -6,147 +6,56 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-class ColoringGA {
-    Map<Register, Operand> colors = new HashMap<>();
-    int nlocals = 0; // nombre d'emplacements sur la pile
-    int K = Register.allocatable.size(); // nombre de couleurs; nombre de registres physiques
-    private Map<Register, Set<Register>> potentialColors;
+class ColoringGA extends Coloring {
 
+    private int K = Register.allocatable.size(); // nombre de couleurs; nombre de registres physiques
+    boolean cond = false;
 
     ColoringGA(Interference ig) {
-        ig.graph.forEach((v, e) -> {
-            if (!Register.allocatable.contains(v)) {
-                Set<Register> pcolors = new HashSet<>();
-                pcolors.addAll(Register.allocatable);
-                pcolors.removeAll(e.intfs);
-                potentialColors.put(v, pcolors);
-            } else {
-                Set<Register> pcolors = new HashSet<>();
-                pcolors.add(v);
-                potentialColors.put(v, pcolors);
-            }
-        });
-        simplify(ig);
-        // colors.forEach((r, op) -> {
-        // if (op instanceof Reg) {
-        // // if (ig.graph.get(r).intfs.contains(((Reg)op).r))
-        // // throw new Error("1");
-        // if (graphinit.get(r).intfs.contains(((Reg)op).r))
-        // throw new Error("2");
-        // }
-        // if (op instanceof Spilled) {
-        // System.out.println("spilled" + r.name + " " + ((Spilled)op).n);
-        // }
-        // });
+        colors = simplify(ig);
     }
 
-    void simplify(Interference ig) {
-        int minimalDegree = Integer.MAX_VALUE;
-        Register vMinimalDegree = null;
-        for (Map.Entry<Register, Arcs> entry : ig.graph.entrySet()) {
-            Register v = entry.getKey();
-            Arcs arcs = entry.getValue();
-            int degree = arcs.intfs.size();
-            if (degree < minimalDegree) {
-                minimalDegree = degree;
-                vMinimalDegree = null;
-            }
-            if ((degree == minimalDegree) && (degree < K) && (arcs.prefs.size() == 0)) {
-                vMinimalDegree = v;
-            }
-        }
-        if (vMinimalDegree != null) {
-            select(ig, vMinimalDegree);
+    Map<Register, Operand> simplify(Interference ig) {
+        if (cond) {
+            return select(ig, null);
         } else {
-            coalesce(ig);
+            return coalesce(ig);
         }
     }
 
-    void coalesce(Interference ig) {
-        // Register v1 = null, v2 = null;
-        // ArrayList<Register> ar = new ArrayList<>(ig.graph.keySet());
-        // boolean george = false;
-        // for (int i = 0; i < ar.size(); i++) {
-        // for (int j = i + 1; j < ar.size(); j++) {
-        // v1 = ar.get(i);
-        // v2 = ar.get(j);
-        // if (ig.graph.get(v1).prefs.contains(v2) &&
-        // !ig.graph.get(v1).intfs.contains(v2)) {
-
-        // if (checkGeorge(ig, v1, v2)) {
-        // george = true;
-        // break;
-        // }
-        // }
-        // }
-        // if (george) {
-        // break;
-        // }
-        // }
-        // if (george && !(colors.containsKey(v1) && colors.containsKey(v2)) && false) {
-        // if (colors.containsKey(v1)) {
-        // // on swappe v1 et v2
-        // Register rtmp = v2;
-        // v2 = v1;
-        // v1 = rtmp;
-        // }
-        // fuse(ig, v1, v2);
-        // simplify(ig);
-        // colors.put(v1, colors.get(v2));
-        // } else {
-        freeze(ig);
-        // }
-    }
-
-    void freeze(Interference ig) {
-        int minimalDegree = Integer.MAX_VALUE;
-        Register vMinimalDegree = null;
-        for (Map.Entry<Register, Arcs> entry : ig.graph.entrySet()) {
-            Register v = entry.getKey();
-            Arcs arcs = entry.getValue();
-            int degree = arcs.intfs.size();
-            if (degree < minimalDegree) {
-                minimalDegree = degree;
-                vMinimalDegree = null;
-            }
-            if ((degree == minimalDegree) && (degree < K)) {
-                vMinimalDegree = v;
-            }
-        }
-        if (vMinimalDegree != null) {
-            for (Register pref : ig.graph.get(vMinimalDegree).prefs) {
-                ig.graph.get(pref).prefs.remove(vMinimalDegree);
-            }
-            ig.graph.get(vMinimalDegree).prefs = new HashSet<>();
-            simplify(ig);
+    Map<Register, Operand> coalesce(Interference ig) {
+        if (cond) {
+            return null;
         } else {
-            spill(ig);
+            return freeze(ig);
         }
     }
 
-    void spill(Interference ig) {
+    Map<Register, Operand> freeze(Interference ig) {
+        if (cond) {
+            return null;
+        } else {
+            return spill(ig);
+        }
+    }
+
+    Map<Register, Operand> spill(Interference ig) {
         if (ig.graph.size() == 0) {
-            colors = new HashMap<>();
+            Map<Register, Operand> c = new HashMap<>();
             Register.allocatable.forEach(allocReg -> {
-                colors.put(allocReg, new Reg(allocReg));
+                c.put(allocReg, new Reg(allocReg));
             });
+            return c;
         } else {
-            Register vMinimalCost = null;
-            double minimalCost = Double.MAX_VALUE;
-            for (Map.Entry<Register, Arcs> entry : ig.graph.entrySet()) {
-                Register v = entry.getKey();
-                Arcs arcs = entry.getValue();
-                double cost = 1.0 / ((double) arcs.intfs.size());
-                if (cost < minimalCost) {
-                    vMinimalCost = v;
-                    minimalCost = cost;
-                }
-            }
-            select(ig, vMinimalCost);
+            // choisit un sommet de cout minimal
+            Register v = ig.graph.keySet().iterator().next();
+            return select(ig, v);
         }
     }
 
-    void select(Interference ig, Register v) {
+    Map<Register, Operand> select(Interference ig, Register v) {
+
+        // supprimer le sommet v de ig
         Arcs vArcs = ig.graph.get(v);
         ig.graph.remove(v);
         ig.graph.values().forEach(uArcs -> {
@@ -154,75 +63,23 @@ class ColoringGA {
             uArcs.prefs.remove(v);
         });
 
-        simplify(ig);
-        if (colors.containsKey(v)) {
-            return;
+        Map<Register, Operand> c = simplify(ig);
+        if (c.containsKey(v)) {
+            return c;
         }
-        Set<Register> possibleColors = new HashSet<>();
-        possibleColors.addAll(Register.allocatable);
-        vArcs.intfs.forEach(u -> {
-            if (colors.containsKey(u) && colors.get(u) instanceof Reg) {
-                possibleColors.remove(((Reg) colors.get(u)).r);
+        Set<Register> potentialColors = new HashSet<>();
+        potentialColors.addAll(Register.allocatable);
+        vArcs.intfs.forEach(vintf -> {
+            if (c.containsKey(vintf) && c.get(vintf) instanceof Reg) {
+                potentialColors.remove(((Reg) c.get(vintf)).r);
             }
         });
-        if (possibleColors.size() != 0) {
-            Register color = possibleColors.iterator().next();
-            colors.put(v, new Reg(color));
+        if (potentialColors.size() > 0) {
+            c.put(v, new Reg(potentialColors.iterator().next()));
         } else {
             nlocals += 1;
             colors.put(v, new Spilled(-8 * nlocals));
         }
-    }
-
-    void fuse(Interference ig, Register v1, Register v2) {
-        Arcs v1arcs = ig.graph.get(v1);
-        v1arcs.intfs.forEach(v1Intfs -> {
-            ig.graph.get(v1Intfs).intfs.remove(v1);
-            if (!v1Intfs.equals(v2)) {
-                ig.graph.get(v1Intfs).intfs.add(v2);
-            }
-
-        });
-        v1arcs.prefs.forEach(v1Prefs -> {
-            ig.graph.get(v1Prefs).prefs.remove(v1);
-            if (!v1Prefs.equals(v2)) {
-                ig.graph.get(v1Prefs).prefs.add(v2);
-            }
-
-        });
-        ig.graph.remove(v1);
-        ig.graph.get(v2).intfs.addAll(v1arcs.intfs);
-        ig.graph.get(v2).prefs.addAll(v1arcs.prefs);
-        ig.graph.get(v2).prefs.remove(v2);
-        ig.graph.get(v2).intfs.remove(v2);
-    }
-
-    boolean checkGeorge(Interference ig, Register v1, Register v2) {
-        if (v2.isPseudo()) {
-            for (Register v1Neighbor : ig.graph.get(v1).intfs) {
-                if (v1Neighbor.isHW() || ig.graph.get(v1Neighbor).intfs.size() >= K) {
-                    if (!ig.graph.get(v2).intfs.contains(v1Neighbor)) {
-                        return false;
-                    }
-                }
-            }
-        } else {
-            for (Register v1Neighbor : ig.graph.get(v1).intfs) {
-                if (v1Neighbor.isPseudo() || ig.graph.get(v1Neighbor).intfs.size() >= K) {
-                    if (!ig.graph.get(v2).intfs.contains(v1Neighbor)) {
-                        return false;
-                    }
-                }
-            }
-        }
-        return true;
-    }
-
-    void print() {
-        System.out.println("coloring output:");
-        for (Register r : colors.keySet()) {
-            Operand o = colors.get(r);
-            System.out.println("  " + r + " --> " + o);
-        }
+        return c;
     }
 }

@@ -229,6 +229,7 @@ class Ebinop extends Expr {
 class Ecall extends Expr {
 	public String i;
 	public LinkedList<Expr> el;
+	public boolean tailCall = false;
 
 	Ecall(String i, LinkedList<Expr> el) {
 		this.i = i;

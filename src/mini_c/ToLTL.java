@@ -18,11 +18,13 @@ class ToLTL implements ERTLVisitor {
         return ltlfile;
     }
 
+    @Override
     public void visit(ERconst o) {
         Operand d = coloring.colors.get(o.r);
         body.graph.put(Ld, new Lconst(o.i, d, o.l));
     }
 
+    @Override
     public void visit(ERload o) {
         Operand d1 = coloring.colors.get(o.r1);
         Operand d2 = coloring.colors.get(o.r2);
@@ -48,6 +50,7 @@ class ToLTL implements ERTLVisitor {
         }
     }
 
+    @Override
     public void visit(ERstore o) {
         Operand d1 = coloring.colors.get(o.r1);
         Operand d2 = coloring.colors.get(o.r2);
@@ -72,11 +75,13 @@ class ToLTL implements ERTLVisitor {
         }
     }
 
+    @Override
     public void visit(ERmunop o) {
         Operand d = coloring.colors.get(o.r);
         body.graph.put(Ld, new Lmunop(o.m, d, o.l));
     }
 
+    @Override
     public void visit(ERmbinop o) {
         Operand d1 = coloring.colors.get(o.r1);
         Operand d2 = coloring.colors.get(o.r2);
@@ -101,11 +106,13 @@ class ToLTL implements ERTLVisitor {
         }
     }
 
+    @Override
     public void visit(ERmubranch o) {
         Operand d = coloring.colors.get(o.r);
         body.graph.put(Ld, new Lmubranch(o.m, d, o.l1, o.l2));
     }
 
+    @Override
     public void visit(ERmbbranch o) {
         Operand d1 = coloring.colors.get(o.r1);
         Operand d2 = coloring.colors.get(o.r2);
@@ -121,29 +128,40 @@ class ToLTL implements ERTLVisitor {
         }
     }
 
+    @Override
     public void visit(ERgoto o) {
         body.graph.put(Ld, new Lgoto(o.l));
     }
 
+    @Override
     public void visit(ERcall o) {
         body.graph.put(Ld, new Lcall(o.s, o.l));
     }
 
+    @Override
     public void visit(ERalloc_frame o) {
         Label Ltmp = o.l;
-        // TODO simplification cas m=0
-        Ltmp = body.add(new Lmunop(new Maddi(-8 * coloring.nlocals), new Reg(Register.rsp), Ltmp));
+        // simplification cas m=0
+        if (coloring.nlocals != 0) {
+            Ltmp = body.add(new Lmunop(new Maddi(-8 * coloring.nlocals), new Reg(Register.rsp), Ltmp));
+        }
         Ltmp = body.add(new Lmbinop(Mbinop.Mmov, new Reg(Register.rsp), new Reg(Register.rbp), Ltmp));
         body.graph.put(Ld, new Lpush(new Reg(Register.rbp), Ltmp));
     }
 
+    @Override
     public void visit(ERdelete_frame o) {
         Label Ltmp = o.l;
-        // TODO simplification cas m=0
-        Ltmp = body.add(new Lpop(Register.rbp, Ltmp));
-        body.graph.put(Ld, new Lmbinop(Mbinop.Mmov, new Reg(Register.rbp), new Reg(Register.rsp), Ltmp));
+        // simplification cas m=0
+        if (coloring.nlocals == 0) {
+            body.graph.put(Ld, new Lpop(Register.rbp, Ltmp));
+        } else {
+            Ltmp = body.add(new Lpop(Register.rbp, Ltmp));
+            body.graph.put(Ld, new Lmbinop(Mbinop.Mmov, new Reg(Register.rbp), new Reg(Register.rsp), Ltmp));
+        }
     }
 
+    @Override
     public void visit(ERget_param o) {
         Operand d = coloring.colors.get(o.r);
         if (d instanceof Spilled) {
@@ -154,18 +172,32 @@ class ToLTL implements ERTLVisitor {
         } else {
             body.graph.put(Ld, new Lload(Register.rbp, o.i, ((Reg) d).r, o.l));
         }
-
     }
 
+    @Override
+    public void visit(ERput_param o) {
+        Operand d = coloring.colors.get(o.r);
+        if (d instanceof Spilled) {
+            Label Ltmp = o.l;
+            Ltmp = body.add(new Lstore(Register.tmp1, Register.rbp, o.i, Ltmp));
+            body.graph.put(Ld, new Lload(Register.rbp, ((Spilled) d).n, Register.tmp1, Ltmp));
+        } else {
+            body.graph.put(Ld, new Lstore(((Reg) d).r, Register.rbp, o.i, o.l));
+        }
+    }
+
+    @Override
     public void visit(ERpush_param o) {
         Operand d = coloring.colors.get(o.r);
         body.graph.put(Ld, new Lpush(d, o.l));
     }
 
+    @Override
     public void visit(ERreturn o) {
         body.graph.put(Ld, new Lreturn());
     }
 
+    @Override
     public void visit(ERTLfun o) {
         LTLfun ltlfun = new LTLfun(o.name);
         ltlfun.entry = o.entry;
@@ -178,10 +210,11 @@ class ToLTL implements ERTLVisitor {
         ltlfile.funs.add(ltlfun);
     }
 
+    @Override
     public void visit(ERTLfile o) {
         o.funs.forEach(fun -> {
             Interference ig = new Interference(new Liveness(fun.body));
-            coloring = new Coloring(ig);
+            coloring = new ColoringGA(ig);
             fun.accept(this);
         });
     }
